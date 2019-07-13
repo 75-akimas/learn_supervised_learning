@@ -55,7 +55,7 @@ int main(void){
                 }
             }
             //いちもじおわり
-            if(mesh_itr == 64){
+            if(mesh_itr == 6399){
                 for(int j=0; j<8;j++){
                     for(int k=0; k<8; k++){
                         printf("%02d ", mesh[i][j][k]);
@@ -63,7 +63,6 @@ int main(void){
                     printf(" ||| ");
                     for(int k=0; k<8; k++){
                         printf("%02d ", mesht[i][j][k]);
-                        mesh[i][j][k] = 0, mesht[i][j][k] = 0;
                     }
                     puts("");
                 }
