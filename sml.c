@@ -12,57 +12,52 @@
 #define OUTPUT 20
 #define MESH_SIZE 8
 #define FILE_SIZE 100
+#define THRESHOLD 0.5
 
 //シグモイド関数のプロトタイプ宣言
 double sigmoid(double x);
-void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][MESH_SIZE*MESH_SIZE], int who);
-void initializeWeight(double Wim[MIDDLE][MESH_SIZE*MESH_SIZE], double Wmo[OUTPUT][MIDDLE]);
+void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][INPUT], int who);
+void initializeWeights(double Wim[MIDDLE][INPUT], double Wmo[OUTPUT][MIDDLE]);
 void initializeTeacher(int teacher[OUTPUT][OUTPUT]);
-void printLayer(double mesh[MESH_SIZE*MESH_SIZE]);
+void printLayer(double mesh[INPUT]);
+void inputToMiddle(double input[INPUT], double mid[MIDDLE], double[MIDDLE][INPUT]);
+void middleToOutput(double middle[MIDDLE], double output[OUTPUT], double Wmo[OUTPUT][MIDDLE]);
+void updateWeights(int teacher[OUTPUT], double input[INPUT], double mid[MIDDLE], double output[OUTPUT], double Wim[MIDDLE][INPUT], double Wmo[OUTPUT][MIDDLE]);
+double mse(int teacher[OUTPUT], double output[OUTPUT]);
 
-int main(void){
+int main(void) {
     //重み関数
-    double Wim[MIDDLE][MESH_SIZE*MESH_SIZE];
+    double Wim[MIDDLE][INPUT];
     double Wmo[OUTPUT][MIDDLE];
     //教師
     int teacher[OUTPUT][OUTPUT];
     //重み関数をランダムな値で初期化
-    initializeWeight(Wim, Wmo);
+    initializeWeights(Wim, Wmo);
     initializeTeacher(teacher);
 
-
-    //パラメータ
-    float a = 0.1;
-    float b = 0.1;
-    float c = 1.0;
-
     //層
-    double input[OUTPUT][FILE_SIZE][MESH_SIZE*MESH_SIZE] = {0};
+    double input[OUTPUT][FILE_SIZE][INPUT] = {0};
     double mid[MIDDLE] = {0};
     double output[OUTPUT] = {0};
 
     generateInputLayerFromData(input, 0);
-    do {
-        for (int w = 0; w < OUTPUT; ++w) {
-            for (int f = 0; f < FILE_SIZE; ++f) {
-                // 入力層 to 中間層
-                for (int j = 0; j < MIDDLE; ++j) {
-                    for (int i = 0; i < INPUT; ++i) {
-                       mid[j] += Wim[j][i] * input[w][f][i];
-                    }
-                    mid[j] = sigmoid(mid[j]);
-                }
-                // 中間層 to 出力層
-                for (int k = 0; k < OUTPUT; ++k) {
-                    for (int j = 0; j < MIDDLE; ++j) {
-                      output[k] += mid[j] * Wmo[k][j];
-                    }
-                    output[k] = sigmoid(output[k]);
-                }
+    for (int w = 0; w < OUTPUT; ++w) {
+        for (int f = 0; f < FILE_SIZE; ++f) {
+            // 入力層 to 中間層
+            inputToMiddle(input[w][f], mid, Wim);
+            // 中間層 to 出力層
+            middleToOutput(mid, output, Wmo);
+
+            updateWeights(teacher[w], input[w][f], mid, output, Wim, Wmo);
+            return 0;
+            printf("%f\n", mse(teacher[w], output));
+            if (mse(teacher[w], output) < THRESHOLD) {
+                f = FILE_SIZE;
+            } else if (f == FILE_SIZE - 1) {
+                f = 0;
             }
         }
-    } while (0);
-
+    }
 
     return 0;
 }
@@ -73,8 +68,8 @@ double sigmoid(double x){
     return 1.0 / (1.0 + c);
 }
 
-void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][MESH_SIZE*MESH_SIZE], int who) {
-    char f_name[MESH_SIZE*MESH_SIZE], str[MESH_SIZE*MESH_SIZE+1];
+void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][INPUT], int who) {
+    char f_name[INPUT], str[INPUT+1];
     FILE *fp;
     double add = 1.0/64;
 
@@ -92,11 +87,11 @@ void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][MESH_SIZE*MESH_SI
             default:
                 sprintf(f_name, "./Data/hira1_%02dT.dat", i);
         }
-        if(fp == NULL) {
-            printf("%s file not open!\n", f_name);
-        } else {
-            printf("%s file opened!\n", f_name);
-        }
+//        if(fp == NULL) {
+//            printf("%s file not open!\n", f_name);
+//        } else {
+//            printf("%s file opened!\n", f_name);
+//        }
 
         fp = fopen(f_name, "r");
 
@@ -111,13 +106,13 @@ void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][MESH_SIZE*MESH_SI
             }
         }
         fclose(fp);
-        printLayer(mesh[i][0]);
+//        printLayer(mesh[i][0]);
     }
 }
 
-void initializeWeight(double Wim[MIDDLE][MESH_SIZE*MESH_SIZE], double Wmo[OUTPUT][MIDDLE]) {
+void initializeWeights(double Wim[MIDDLE][INPUT], double Wmo[OUTPUT][MIDDLE]) {
     for(int j=0; j<MIDDLE;j++) {
-        for (int i = 0; i < MESH_SIZE*MESH_SIZE; ++i) {
+        for (int i = 0; i < INPUT; ++i) {
             srand(rand());
             Wim[j][i] = (double)rand()/RAND_MAX;
         }
@@ -138,7 +133,7 @@ void initializeTeacher(int teacher[OUTPUT][OUTPUT]) {
     }
 }
 
-void printLayer(double mesh[MESH_SIZE*MESH_SIZE]) {
+void printLayer(double mesh[INPUT]) {
     for(int j=0; j<MESH_SIZE;j++){
         for(int k=0; k<MESH_SIZE; k++){
             printf("%2.3f", mesh[j*8+k]);
@@ -146,4 +141,61 @@ void printLayer(double mesh[MESH_SIZE*MESH_SIZE]) {
         puts("");
     }
     puts("");
+}
+
+void inputToMiddle(double input[INPUT], double mid[MIDDLE], double Wim[MIDDLE][INPUT]) {
+    for (int j = 0; j < MIDDLE; ++j) {
+        for (int i = 0; i < INPUT; ++i) {
+            mid[j] += Wim[j][i] * input[i];
+        }
+        mid[j] = sigmoid(mid[j]);
+//        printf("%f\n", mid[j]);
+    }
+}
+
+void middleToOutput(double mid[MIDDLE], double output[OUTPUT], double Wmo[OUTPUT][MIDDLE]) {
+    for (int k = 0; k < OUTPUT; ++k) {
+        for (int j = 0; j < MIDDLE; ++j) {
+            output[k] += Wmo[k][j] * mid[j];
+        }
+        output[k] = sigmoid(output[k]);
+//        printf("%f\n", output[k]);
+    }
+}
+
+void updateWeights(int teacher[OUTPUT], double input[INPUT], double mid[MIDDLE], double output[OUTPUT], double Wim[MIDDLE][INPUT],
+                   double Wmo[OUTPUT][MIDDLE]) {
+    //パラメータ
+    float a = 0.9;
+    float b = 0.1;
+
+    for (int k = 0; k < OUTPUT; ++k) {
+        for (int j = 0; j < MIDDLE; ++j) {
+            printf("%f ", Wmo[k][j]);
+            Wmo[k][j] = a * (teacher[k] - output[k]) * output[k] * (1 - output[k]) * output[j] + b * Wmo[k][j];
+            printf("%f\n", Wmo[k][j]);
+        }
+    }
+
+    for (int j = 0; j < MIDDLE; ++j) {
+        for (int i = 0; i < INPUT; ++i) {
+            double sum = 0;
+            for (int k = 0; k < OUTPUT; ++k) {
+                sum += (teacher[k] - output[k]) * output[k] * (1 - output[k]) * Wmo[k][j];
+            }
+            Wim[j][i] = a * mid[j] * (1 - mid[j]) * mid[j] * sum + b * Wim[j][i];
+        }
+    }
+}
+
+double mse(int teacher[OUTPUT], double output[OUTPUT]) {
+    double sub, sum_k = 0, sum_i = 0;
+    for (int i = 0; i < INPUT; ++i) {
+        for (int k = 0; k < OUTPUT; ++k) {
+            sub = (teacher[k] - output[k]);
+            sum_k += sub*sub;
+        }
+        sum_i += sum_k / OUTPUT;
+    }
+    return sum_i / INPUT;
 }
