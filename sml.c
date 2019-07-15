@@ -12,7 +12,7 @@
 #define OUTPUT 20
 #define MESH_SIZE 8
 #define FILE_SIZE 100
-#define THRESHOLD 0.5
+#define THRESHOLD 0.05
 
 //シグモイド関数のプロトタイプ宣言
 double sigmoid(double x);
@@ -32,6 +32,7 @@ int main(void) {
     //教師
     int teacher[OUTPUT][OUTPUT];
     //重み関数をランダムな値で初期化
+
     initializeWeights(Wim, Wmo);
     initializeTeacher(teacher);
 
@@ -39,26 +40,57 @@ int main(void) {
     double input[OUTPUT][FILE_SIZE][INPUT] = {0};
     double mid[MIDDLE] = {0};
     double output[OUTPUT] = {0};
+    double mmse = THRESHOLD;
 
     generateInputLayerFromData(input, 0);
     for (int w = 0; w < OUTPUT; ++w) {
-        for (int f = 0; f < FILE_SIZE; ++f) {
-            // 入力層 to 中間層
+        do {
+            for (int f = 0; f < FILE_SIZE; ++f) {
+                // 入力層 to 中間層
+//            printLayer(input[w][f]);
+                inputToMiddle(input[w][f], mid, Wim);
+                // 中間層 to 出力層
+                middleToOutput(mid, output, Wmo);
+
+                updateWeights(teacher[w], input[w][f], mid, output, Wim, Wmo);
+//                printf("%d %f\n", w, mse(teacher[w], output));
+                mmse = mse(teacher[w], output);
+            }
+        } while (mmse > THRESHOLD);
+    }
+    //層
+    int sum = 0;
+
+    generateInputLayerFromData(input, 1);
+    int w;
+    for (w = 0; w < 1; ++w) {
+        printf("%d\n", w);
+        for (int f = 0; f < 1; ++f) {
             inputToMiddle(input[w][f], mid, Wim);
             // 中間層 to 出力層
             middleToOutput(mid, output, Wmo);
-
-            updateWeights(teacher[w], input[w][f], mid, output, Wim, Wmo);
-            return 0;
-            printf("%f\n", mse(teacher[w], output));
-            if (mse(teacher[w], output) < THRESHOLD) {
-                f = FILE_SIZE;
-            } else if (f == FILE_SIZE - 1) {
-                f = 0;
+            double max_x = 0;
+            double max_x_itr = 0;
+            for (int i = 0; i < OUTPUT; ++i) {
+                if (output[i] > max_x) {
+//                    puts("a");
+                    max_x = output[i];
+                    max_x_itr = i;
+                    printf("%f %d %d\n", max_x, max_x_itr, i);
+                }
+            }
+            printf("%d\n", w);
+            if (max_x_itr == w) {
+                sum++;
             }
         }
     }
+    printf("%d ", sum);
+    printf("%f %", (double)sum/2000*100);
 
+
+
+    
     return 0;
 }
 
@@ -114,13 +146,15 @@ void initializeWeights(double Wim[MIDDLE][INPUT], double Wmo[OUTPUT][MIDDLE]) {
     for(int j=0; j<MIDDLE;j++) {
         for (int i = 0; i < INPUT; ++i) {
             srand(rand());
-            Wim[j][i] = (double)rand()/RAND_MAX;
+            Wim[j][i] = ((double)rand()/RAND_MAX)*4-1;
+//            printf("%f\n", Wim[j][i]);
         }
     }
     for(int k=0; k<OUTPUT;k++) {
         for (int j = 0; j < MIDDLE; ++j) {
             srand(rand());
-            Wmo[k][j] = (double)rand()/RAND_MAX;
+            Wmo[k][j] = ((double)rand()/RAND_MAX)*4-1;
+//            printf("%f\n", Wmo[k][j]);
         }
     }
 }
@@ -166,14 +200,14 @@ void middleToOutput(double mid[MIDDLE], double output[OUTPUT], double Wmo[OUTPUT
 void updateWeights(int teacher[OUTPUT], double input[INPUT], double mid[MIDDLE], double output[OUTPUT], double Wim[MIDDLE][INPUT],
                    double Wmo[OUTPUT][MIDDLE]) {
     //パラメータ
-    float a = 0.9;
-    float b = 0.1;
+    float a = 0.5;
+    float b = 0.8;
 
     for (int k = 0; k < OUTPUT; ++k) {
         for (int j = 0; j < MIDDLE; ++j) {
-            printf("%f ", Wmo[k][j]);
+//            printf("%f ", Wmo[k][j]);
             Wmo[k][j] = a * (teacher[k] - output[k]) * output[k] * (1 - output[k]) * output[j] + b * Wmo[k][j];
-            printf("%f\n", Wmo[k][j]);
+//            printf("%f\n", Wmo[k][j]);
         }
     }
 
@@ -183,18 +217,23 @@ void updateWeights(int teacher[OUTPUT], double input[INPUT], double mid[MIDDLE],
             for (int k = 0; k < OUTPUT; ++k) {
                 sum += (teacher[k] - output[k]) * output[k] * (1 - output[k]) * Wmo[k][j];
             }
+//            printf("%f ", Wim[j][i]);
+
             Wim[j][i] = a * mid[j] * (1 - mid[j]) * mid[j] * sum + b * Wim[j][i];
+//            printf("%f\n", Wim[j][i]);
         }
     }
 }
 
 double mse(int teacher[OUTPUT], double output[OUTPUT]) {
     double sub, sum_k = 0, sum_i = 0;
+    for (int k = 0; k < OUTPUT; ++k) {
+//        printf("%d, %f\n", teacher[k], output[k]);
+        sub = (teacher[k] - output[k]);
+        sum_k += sub*sub;
+    }
+
     for (int i = 0; i < INPUT; ++i) {
-        for (int k = 0; k < OUTPUT; ++k) {
-            sub = (teacher[k] - output[k]);
-            sum_k += sub*sub;
-        }
         sum_i += sum_k / OUTPUT;
     }
     return sum_i / INPUT;
