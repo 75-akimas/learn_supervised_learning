@@ -12,9 +12,9 @@
 #define OUTPUT 20
 #define MESH_SIZE 8
 #define FILE_SIZE 100
-#define THRESHOLD 0.00005
-#define ETA 0.001
-#define NUM 2
+#define THRESHOLD 0.0001
+#define ETA 0.01
+#define NUM 1
 
 //シグモイド関数のプロトタイプ宣言
 double sigmoid(double x);
@@ -48,8 +48,8 @@ int main(void) {
 
     //学習データからメッシュ情報を作成
     generateInputLayerFromData(input[0], 0);
-    generateInputLayerFromData(input[1], 2);
 
+    //平均二乗誤差を指定した値より小さくする
     do {
         mmse = 0;
         for (int i = 0; i < NUM; ++i) {
@@ -66,29 +66,26 @@ int main(void) {
                 }
             }
         }
-        printf("%f, %f\n", THRESHOLD, mmse / (OUTPUT*FILE_SIZE));
+        printf("%f\n", mmse / (OUTPUT*FILE_SIZE*NUMnp));
     } while (mmse / (OUTPUT*FILE_SIZE*NUM) >= THRESHOLD);
     //識別テスト
     double input1[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
     double mid1[MIDDLE] = {0};
     double output1[OUTPUT] = {0};
     generateInputLayerFromData(input1[0], 0);
-    generateInputLayerFromData(input1[1], 2);
     execute(input1, mid1, output1, Wim, Wmo);
 
     double input2[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
     double mid2[MIDDLE] = {0};
     double output2[OUTPUT] = {0};
     generateInputLayerFromData(input2[0], 1);
-    generateInputLayerFromData(input2[0], 3);
     execute(input2, mid2, output2, Wim, Wmo);
 
-//    double input3[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
-//    double mid3[MIDDLE] = {0};
-//    double output3[OUTPUT] = {0};
-//    generateInputLayerFromData(input2[0], 2);
-//    generateInputLayerFromData(input[0], 3);
-//    execute(input3, mid3, output3, Wim, Wmo);
+    double input3[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
+    double mid3[MIDDLE] = {0};
+    double output3[OUTPUT] = {0};
+    generateInputLayerFromData(input3[0], 3);
+    execute(input3, mid3, output3, Wim, Wmo);
 
 
 
@@ -264,6 +261,6 @@ void execute(double input[NUM][OUTPUT][FILE_SIZE][INPUT], double mid[MIDDLE], do
             }
         }
     }
-    printf("%.2f", (double)sum/(OUTPUT*FILE_SIZE*NUM)*100);
+    printf("threshold = %f, eta = %f, %.2f", THRESHOLD, ETA, (double)sum/(OUTPUT*FILE_SIZE*NUM)*100);
     puts("%");
 }
