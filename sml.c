@@ -8,12 +8,12 @@
 #include<string.h>
 
 #define INPUT 64
-#define MIDDLE 50
+#define MIDDLE 64
 #define OUTPUT 20
 #define MESH_SIZE 8
 #define FILE_SIZE 100
-#define THRESHOLD 0.00005
-#define ETA 0.001
+#define THRESHOLD 0.001
+#define ETA 0.1
 #define NUM 2
 
 //シグモイド関数のプロトタイプ宣言
@@ -66,7 +66,7 @@ int main(void) {
                 }
             }
         }
-        printf("%f, %f\n", THRESHOLD, mmse / (OUTPUT*FILE_SIZE));
+        printf("%f\n", mmse / (OUTPUT*FILE_SIZE*NUM));
     } while (mmse / (OUTPUT*FILE_SIZE*NUM) >= THRESHOLD);
     //識別テスト
     double input1[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
@@ -80,7 +80,7 @@ int main(void) {
     double mid2[MIDDLE] = {0};
     double output2[OUTPUT] = {0};
     generateInputLayerFromData(input2[0], 1);
-    generateInputLayerFromData(input2[0], 3);
+    generateInputLayerFromData(input2[1], 3);
     execute(input2, mid2, output2, Wim, Wmo);
 
 //    double input3[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
@@ -264,6 +264,6 @@ void execute(double input[NUM][OUTPUT][FILE_SIZE][INPUT], double mid[MIDDLE], do
             }
         }
     }
-    printf("%.2f", (double)sum/(OUTPUT*FILE_SIZE*NUM)*100);
+    printf("eta: %f, threshold: %f, %.2f", ETA, THRESHOLD, (double)sum/(OUTPUT*FILE_SIZE*NUM)*100);
     puts("%");
 }

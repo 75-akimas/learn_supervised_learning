@@ -12,7 +12,7 @@
 #define OUTPUT 20
 #define MESH_SIZE 8
 #define FILE_SIZE 100
-#define THRESHOLD 0.0001
+#define THRESHOLD 0.001
 #define ETA 0.01
 #define NUM 1
 
@@ -66,7 +66,7 @@ int main(void) {
                 }
             }
         }
-        printf("%f\n", mmse / (OUTPUT*FILE_SIZE*NUMnp));
+        printf("%f\n", mmse / (OUTPUT*FILE_SIZE*NUM));
     } while (mmse / (OUTPUT*FILE_SIZE*NUM) >= THRESHOLD);
     //識別テスト
     double input1[NUM][OUTPUT][FILE_SIZE][INPUT] = {0};
@@ -102,6 +102,7 @@ void generateInputLayerFromData(double mesh[OUTPUT][FILE_SIZE][INPUT], int who) 
     char f_name[INPUT], str[INPUT+1];
     FILE *fp;
     double add = 1.0/64;
+    printf("%d\n", who);
 
     for(int i = 0; i<OUTPUT; i++) {
         switch (who) {
